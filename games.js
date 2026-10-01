@@ -3,33 +3,34 @@
   if (!box) return;
   const O = window.SITE_OVERRIDES || {}; let best = {}, cur = '', stop = () => {};
   try { best = JSON.parse(localStorage.getItem('g_best') || '{}'); } catch (e) {}
-  const showBest = k => $('#gameBest').textContent = '🏆 ' + (best[k] != null ? best[k] : '—');
+  const showBest = k => $('#gameBest').innerHTML = ic('trophy', 16) + ' ' + (best[k] != null ? best[k] : '—');
   const save = (k, v, low) => { if (best[k] == null || (low ? v < best[k] : v > best[k])) { best[k] = v; localStorage.setItem('g_best', JSON.stringify(best)); } showBest(k); };
-  const confetti = () => { for (let i = 0; i < 28; i++) { const s = document.createElement('span'); s.className = 'cf'; s.textContent = ['🎉', '✨', '⭐', '💎'][i % 4]; s.style.cssText = `left:${Math.random() * 100}vw;--d:${1.5 + Math.random() * 1.5}s;--x:${Math.random() * 200 - 100}px`; document.body.appendChild(s); setTimeout(() => s.remove(), 3200); } };
-  const win = m => { confetti(); box.insertAdjacentHTML('beforeend', `<div class="g-win"><div>${m}</div><button class="btn-glow" id="again">↻ Play again</button></div>`); $('#again').onclick = () => start(cur); };
+  const confetti = () => { const cl = ['#3b82f6', '#a855f7', '#22c55e', '#f59e0b', '#ec4899']; for (let i = 0; i < 32; i++) { const s = document.createElement('span'); s.className = 'cf'; s.style.cssText = `left:${Math.random() * 100}vw;background:${cl[i % 5]};--d:${1.5 + Math.random() * 1.5}s;--x:${Math.random() * 200 - 100}px`; document.body.appendChild(s); setTimeout(() => s.remove(), 3200); } };
+  const win = m => { confetti(); box.insertAdjacentHTML('beforeend', `<div class="g-win"><div>${m}</div><button class="btn-glow" id="again">${ic('rotate', 18)} Play again</button></div>`); $('#again').onclick = () => start(cur); };
 
+  const MI = ['zap', 'star', 'target', 'key', 'globe', 'bug', 'keyboard', 'trophy'], TR = () => ic('trophy', 34);
   function memory() {
-    const e = ['🚀', '💻', '🎮', '🔥', '⚡', '🧠', '🛡️', '🎧'], c = [...e, ...e].sort(() => Math.random() - .5);
-    box.innerHTML = `<div class="g-bar"><span>Moves: <b id="mv">0</b></span><span>Find all pairs</span></div><div class="mem">${c.map(x => `<button class="mc"><i>?</i><b>${x}</b></button>`).join('')}</div>`;
+    const c = [...MI, ...MI].sort(() => Math.random() - .5);
+    box.innerHTML = `<div class="g-bar"><span>Moves: <b id="mv">0</b></span><span>Find all pairs</span></div><div class="mem">${c.map(x => `<button class="mc" data-k="${x}"><i>${ic('help', 26)}</i><b>${ic(x, 30)}</b></button>`).join('')}</div>`;
     let a = null, lock = false, m = 0, done = 0;
     box.querySelectorAll('.mc').forEach(b => b.onclick = () => {
       if (lock || b.classList.contains('on')) return; b.classList.add('on');
       if (!a) { a = b; return; }
       $('#mv').textContent = ++m;
-      if (a.lastChild.textContent === b.lastChild.textContent) { a.classList.add('ok'); b.classList.add('ok'); a = null; if (++done === 8) { save('memory', m, 1); win(`🎉 ${m} moves`); } }
+      if (a.dataset.k === b.dataset.k) { a.classList.add('ok'); b.classList.add('ok'); a = null; if (++done === 8) { save('memory', m, 1); win(`${TR()} ${m} moves`); } }
       else { lock = true; setTimeout(() => { a.classList.remove('on'); b.classList.remove('on'); a = null; lock = false; }, 700); }
     });
   }
   function tap() {
-    box.innerHTML = `<div class="g-bar"><span>⏱ <b id="tm">20</b>s</span><span>🎯 <b id="sc">0</b> · 💣 = -3</span></div><div class="holes">${'<button class="hole"></button>'.repeat(9)}</div>`;
+    box.innerHTML = `<div class="g-bar"><span>${ic('clock', 16)} <b id="tm">20</b>s</span><span>${ic('target', 16)} <b id="sc">0</b> · ${ic('bomb', 16)} = -3</span></div><div class="holes">${'<button class="hole"></button>'.repeat(9)}</div>`;
     const hs = [...box.querySelectorAll('.hole')]; let s = 0, t = 20, cur = -1;
-    const pop = () => { hs.forEach(h => h.textContent = ''); cur = Math.floor(Math.random() * 9); hs[cur].textContent = Math.random() < .2 ? '💣' : '🐞'; };
-    hs.forEach((h, i) => h.onclick = () => { if (i !== cur || !h.textContent) return; s += h.textContent === '💣' ? -3 : 1; h.textContent = ''; $('#sc').textContent = s; pop(); });
-    pop(); const p = setInterval(pop, 800), c = setInterval(() => { $('#tm').textContent = --t; if (t <= 0) { clearInterval(p); clearInterval(c); save('tap', s); win(`🎯 ${s}`); } }, 1000);
+    const pop = () => { hs.forEach(h => { h.innerHTML = ''; h.dataset.t = ''; }); cur = Math.floor(Math.random() * 9); const x = Math.random() < .2; hs[cur].dataset.t = x ? 'x' : 'b'; hs[cur].innerHTML = ic(x ? 'bomb' : 'bug', 40); };
+    hs.forEach((h, i) => h.onclick = () => { if (i !== cur || !h.dataset.t) return; s += h.dataset.t === 'x' ? -3 : 1; $('#sc').textContent = s; pop(); });
+    pop(); const p = setInterval(pop, 800), c = setInterval(() => { $('#tm').textContent = --t; if (t <= 0) { clearInterval(p); clearInterval(c); save('tap', s); win(`${TR()} ${s}`); } }, 1000);
     return () => { clearInterval(p); clearInterval(c); };
   }
   function snake() {
-    box.innerHTML = `<div class="g-bar"><span>🍎 <b id="sc">0</b></span><span>⌨️ arrows / swipe</span></div><canvas id="sn" width="320" height="320"></canvas>`;
+    box.innerHTML = `<div class="g-bar"><span>${ic('apple', 16)} <b id="sc">0</b></span><span>${ic('keyboard', 16)} arrows / swipe</span></div><canvas id="sn" width="320" height="320"></canvas>`;
     const cv = $('#sn'), x = cv.getContext('2d'), N = 16, S = 20; let sn = [[8, 8], [7, 8], [6, 8]], d = [1, 0], nd = d, f = [12, 8], sc = 0, sx, sy;
     const key = e => { const m = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] }[e.key]; if (!m) return; e.preventDefault(); if (m[0] + d[0] || m[1] + d[1]) nd = m; };
     const ts = e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; };
@@ -37,7 +38,7 @@
     addEventListener('keydown', key); cv.addEventListener('touchstart', ts, { passive: true }); cv.addEventListener('touchend', te);
     const L = setInterval(() => {
       d = nd; const h = [sn[0][0] + d[0], sn[0][1] + d[1]];
-      if (h[0] < 0 || h[1] < 0 || h[0] >= N || h[1] >= N || sn.some(p => p[0] === h[0] && p[1] === h[1])) { clearInterval(L); save('snake', sc); return win(`🐍 ${sc}`); }
+      if (h[0] < 0 || h[1] < 0 || h[0] >= N || h[1] >= N || sn.some(p => p[0] === h[0] && p[1] === h[1])) { clearInterval(L); save('snake', sc); return win(`${TR()} ${sc}`); }
       sn.unshift(h);
       if (h[0] === f[0] && h[1] === f[1]) { $('#sc').textContent = ++sc; f = [Math.random() * N | 0, Math.random() * N | 0]; } else sn.pop();
       x.fillStyle = '#050a18'; x.fillRect(0, 0, 320, 320); x.fillStyle = '#f87171'; x.fillRect(f[0] * S + 2, f[1] * S + 2, 16, 16);
@@ -49,9 +50,9 @@
   function quiz() {
     const Q = (O.quiz && O.quiz.length ? O.quiz : DQ).slice().sort(() => Math.random() - .5).slice(0, 10); let i = 0, s = 0, t;
     const show = () => {
-      if (i >= Q.length) { save('quiz', s); return win(`🧠 ${s}/${Q.length}`); }
+      if (i >= Q.length) { save('quiz', s); return win(`${TR()} ${s}/${Q.length}`); }
       const [q, o, a] = Q[i];
-      box.innerHTML = `<div class="g-bar"><span>${i + 1}/${Q.length}</span><span>⭐ ${s}</span></div><h3 class="question-text">${q}</h3><div class="options-grid">${o.map((v, k) => `<button class="option-btn" data-k="${k}">${v}</button>`).join('')}</div>`;
+      box.innerHTML = `<div class="g-bar"><span>${i + 1}/${Q.length}</span><span>${ic('star', 16)} ${s}</span></div><h3 class="question-text">${q}</h3><div class="options-grid">${o.map((v, k) => `<button class="option-btn" data-k="${k}">${v}</button>`).join('')}</div>`;
       const bs = box.querySelectorAll('.option-btn');
       bs.forEach(b => b.onclick = () => { bs.forEach(x => x.disabled = 1); const k = +b.dataset.k; b.classList.add(k === a ? 'correct' : 'wrong'); if (k === a) s++; else bs[a].classList.add('correct'); t = setTimeout(() => { i++; show(); }, 900); });
     };
@@ -59,10 +60,10 @@
   }
   function type() {
     const W = 'lua node react mysql qbcore server client export event thread native config async await fetch deploy debug'.split(' ');
-    box.innerHTML = `<div class="g-bar"><span>⏱ <b id="tm">30</b>s</span><span>✅ <b id="sc">0</b></span></div><div class="tw" id="tw"></div><input id="ti" class="g-input" autocomplete="off" autocapitalize="off" placeholder="type here…">`;
+    box.innerHTML = `<div class="g-bar"><span>${ic('clock', 16)} <b id="tm">30</b>s</span><span>${ic('check', 16)} <b id="sc">0</b></span></div><div class="tw" id="tw"></div><input id="ti" class="g-input" autocomplete="off" autocapitalize="off" placeholder="type here…">`;
     let s = 0, t = 30, w; const nx = () => { w = W[Math.random() * W.length | 0]; $('#tw').textContent = w; }; nx();
     const ti = $('#ti'); ti.focus(); ti.oninput = () => { if (ti.value.trim() === w) { $('#sc').textContent = ++s; ti.value = ''; nx(); } };
-    const c = setInterval(() => { $('#tm').textContent = --t; if (!t) { clearInterval(c); ti.disabled = 1; save('type', s); win(`⌨️ ${s} words`); } }, 1000);
+    const c = setInterval(() => { $('#tm').textContent = --t; if (!t) { clearInterval(c); ti.disabled = 1; save('type', s); win(`${TR()} ${s} words`); } }, 1000);
     return () => clearInterval(c);
   }
   const games = { memory, tap, snake, quiz, type };
